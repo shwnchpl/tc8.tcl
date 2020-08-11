@@ -35,21 +35,33 @@ namespace eval c8 {
     }
 
     oo::class create Cpu {
-        variable pc sp ri v ram vram stack ui
+        variable pc sp ri v ram vram stack ui thread
 
         constructor {u} {
-            set ui $u
             set sp 0
             set ri 0
             set v [lrepeat 0x10 0]
             set ram [concat $c8::FONT_SPRITES [lrepeat 0xfb0 0]]
             set vram [lrepeat 0x800 0]
             set stack [lrepeat 0x10 0]
+            set ui $u
+            set thread {}
         }
 
         method loadrom {rom} {
             c8::lcpy ram $rom 0x200
             set pc 0x200
+        }
+
+        method run {ms} {
+            after cancel $thread
+            my tick
+            set thread [after $ms [list [self object] run $ms]]
+        }
+
+        method halt {} {
+            after cancel $thread
+            set thread {}
         }
 
         method fetch {} {
@@ -148,8 +160,12 @@ namespace eval c8 {
                 {^15 \d+ 6 5$}      { c8::lcpy v [lrange $ram $ri [expr {$ri + $x}]] 0 }    ;# Read
                 default             { puts stderr "BAD OPCODE: $op" }
             }
+
+            # Debug code. Remove later.
+            # puts [format "%04x" $op]
         }
 
+        # Debug code. Remove later.
         method dumpv {} {
             puts "pc: $pc; v: $v"
         }
@@ -205,5 +221,13 @@ namespace eval c8 {
                 }
             }
         }
+    }
+
+    proc readrom {fn} {
+        fconfigure [set fp [open $fn r]] -translation binary
+        binary scan [read $fp] c* data
+        close $fp
+
+        return [lmap x $data {expr {$x & 0xff}}]
     }
 }
