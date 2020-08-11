@@ -74,7 +74,7 @@ namespace eval c8 {
                 {^0 0 14 14$}       { set pc [lindex $stack [incr sp -1]] }                 ;# Ret
                 {^0 \d+ \d+ \d+$}   { puts stderr "UNIMPLEMENTED SYS OP: $nnn" }            ;# Sys
                 {^1 \d+ \d+ \d+$}   { set pc $nnn }                                         ;# Jmp
-                {^2 \d+ \d+ \d+$}   { lset stack $sp $pc; incr sp; set $pc $nnn }           ;# Call
+                {^2 \d+ \d+ \d+$}   { lset stack $sp $pc; incr sp; set pc $nnn }            ;# Call
                 {^3 \d+ \d+ \d+$}   { if {[lindex $v $x] == $kk} { incr pc 2 } }            ;# Se
                 {^4 \d+ \d+ \d+$}   { if {[lindex $v $x] != $kk} { incr pc 2 } }            ;# Sne
                 {^5 \d+ \d+ 0$}     { if {[lindex $v $x] == [lindex $v $y]} { incr pc 2 } } ;# Sre
