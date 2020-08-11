@@ -37,8 +37,8 @@ namespace eval c8 {
     oo::class create Cpu {
         variable pc sp ri v ram vram stack ui
 
-        constructor {ui} {
-            set ui $ui
+        constructor {u} {
+            set ui $u
             set sp 0
             set ri 0
             set v [lrepeat 0x10 0]
@@ -70,7 +70,7 @@ namespace eval c8 {
             set kk [expr {$op & 0xff}]
 
             switch -regexp [list $n3 $x $y $n0] {
-                {^0 0 14 0$}        {}                                                      ;# Cls - TODO
+                {^0 0 14 0$}        { set vram [lrepeat 0x800 0]; $ui vrefresh vram }       ;# Cls
                 {^0 0 14 14$}       { set pc [lindex $stack [incr sp -1]] }                 ;# Ret
                 {^0 \d+ \d+ \d+$}   { puts stderr "UNIMPLEMENTED SYS OP: $nnn" }            ;# Sys
                 {^1 \d+ \d+ \d+$}   { set pc $nnn }                                         ;# Jmp
@@ -111,7 +111,24 @@ namespace eval c8 {
                 {^10 \d+ \d+ \d+$}  { set ri $nnn }                                         ;# Ldi
                 {^11 \d+ \d+ \d+$}  { set pc [expr {$nnn + [lindex $v 0]}] }                ;# Jmpi
                 {^12 \d+ \d+ \d+$}  { lset v $x [expr {int(rand() * 0xff) & $kk|}] }        ;# Rand
-                {^13 \d+ \d+ \d+$}  {}                                                      ;# Draw - TODO
+                {^13 \d+ \d+ \d+$}  {
+                        lset v 0x0f 0
+                        for {set i 0} {$i < $n0} {incr i} {
+                            set sbyte [lindex $ram [expr {$ri + $i}]]
+                            set vert [expr {([lindex $v $y] + $i) % 32}]
+                            for {set j 0} {$j < 8} {incr j} {
+                                set horiz [expr {([lindex $v $x] + $j) % 64}]
+                                set offset [expr {$vert * 64 + $horiz}]
+                                set oval [lindex $vram $offset]
+                                set nval [expr {($sbyte & (1 << (7 - $j))) != 0}]
+                                if {$oval && $nval} {
+                                    lset v 0x0f 1
+                                }
+                                lset vram $offset [expr {$oval ^ $nval}]
+                            }
+                        }
+                        $ui vrefresh vram
+                    }                                                                       ;# Draw - TODO
                 {^14 \d+ 9 14$}     {}                                                      ;# Skp - TODO
                 {^14 \d+ 10 1$}     {}                                                      ;# Sknp - TODO
                 {^15 \d+ 0 7$}      {}                                                      ;# Movd - TODO
@@ -129,7 +146,7 @@ namespace eval c8 {
                     }                                                                       ;# Bcd
                 {^15 \d+ 5 5$}      { c8::lcpy ram [lrange $v 0 $x] $ri }                   ;# Str
                 {^15 \d+ 6 5$}      { c8::lcpy v [lrange $ram $ri [expr {$ri + $x}]] 0 }    ;# Read
-                default             { puts stderr "BAD OPCODE" }
+                default             { puts stderr "BAD OPCODE: $op" }
             }
         }
 
