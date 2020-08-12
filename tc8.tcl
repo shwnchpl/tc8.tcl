@@ -1,5 +1,6 @@
 package require Tcl 8.5
 package require Tk
+package require Thread
 
 namespace eval c8 {
     variable FONT_SPRITES {
@@ -69,6 +70,7 @@ namespace eval c8 {
             incr pc 2
             return [expr {($h << 8) | $l}]
         }
+        unexport fetch
 
         method tick {} {
             set op [my fetch]
@@ -140,13 +142,13 @@ namespace eval c8 {
                             }
                         }
                         $ui vrefresh vram
-                    }                                                                       ;# Draw - TODO
+                    }                                                                       ;# Draw
                 {^14 \d+ 9 14$}     {}                                                      ;# Skp - TODO
                 {^14 \d+ 10 1$}     {}                                                      ;# Sknp - TODO
                 {^15 \d+ 0 7$}      {}                                                      ;# Movd - TODO
                 {^15 \d+ 0 10$}     {}                                                      ;# Key - TODO
                 {^15 \d+ 1 5$}      {}                                                      ;# Ldd - TODO
-                {^15 \d+ 1 8$}      {}                                                      ;# Lds - TODO
+                {^15 \d+ 1 8$}      { $ui buzz [expr {int([lindex $v $x] * 16.7)}] }        ;# Lds
                 {^15 \d+ 1 14$}     { incr ri [lindex $v $x] }                              ;# Addi
                 {^15 \d+ 2 9$}      { set ri [expr $x * 5] }                                ;# Ldspr
                 {^15 \d+ 3 3$}      {
@@ -177,10 +179,26 @@ namespace eval c8 {
     }
 
     oo::class create Ui {
-        variable vcache screen screenw screenh
+        variable vcache screen screenw screenh audiotid
 
         constructor {} {
             set vcache [lrepeat 0x800 0]
+            set audiotid [thread::create {
+                proc buzz {ms} {
+                    set aplay [open "|aplay -q -r8" r+]
+                    fconfigure $aplay -buffering none -translation binary
+
+                    for {set i 0} {$i < (8 * $ms)} {incr i} {
+                        puts -nonewline $aplay \
+                            [binary decode hex \
+                                [lindex {00 ff} [expr {([incr i] / 20) % 2}]]]
+                    }
+
+                    close $aplay
+                }
+
+                thread::wait
+            }]
         }
 
         method create_window {width height} {
@@ -220,6 +238,10 @@ namespace eval c8 {
                     my set_pixel [expr {$i % 64}] [expr {$i / 64}] [lindex $v $i]
                 }
             }
+        }
+
+        method buzz {ms} {
+            thread::send -async $audiotid [list buzz $ms]
         }
     }
 
