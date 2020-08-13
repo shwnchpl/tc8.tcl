@@ -143,10 +143,10 @@ namespace eval c8 {
                         }
                         $ui vrefresh vram
                     }                                                                       ;# Draw
-                {^14 \d+ 9 14$}     {}                                                      ;# Skp - TODO
-                {^14 \d+ 10 1$}     {}                                                      ;# Sknp - TODO
+                {^14 \d+ 9 14$}     { if {[$ui pollkey [lindex $v $x]]} { incr pc 2 } }     ;# Skp
+                {^14 \d+ 10 1$}     { if {! [$ui pollkey [lindex $v $x]]} { incr pc 2 } }   ;# Sknp
                 {^15 \d+ 0 7$}      {}                                                      ;# Movd - TODO
-                {^15 \d+ 0 10$}     {}                                                      ;# Key - TODO
+                {^15 \d+ 0 10$}     { lset v $x [$ui waitkey] }                             ;# Key
                 {^15 \d+ 1 5$}      {}                                                      ;# Ldd - TODO
                 {^15 \d+ 1 8$}      { $ui buzz [expr {int([lindex $v $x] * 16.7)}] }        ;# Lds
                 {^15 \d+ 1 14$}     { incr ri [lindex $v $x] }                              ;# Addi
@@ -179,10 +179,11 @@ namespace eval c8 {
     }
 
     oo::class create Ui {
-        variable vcache screen screenw screenh audiotid
+        variable vcache screen screenw screenh audiotid keys lastkey
 
         constructor {} {
             set vcache [lrepeat 0x800 0]
+            set keys [lrepeat 0x10 {}]
             set audiotid [thread::create {
                 proc buzz {ms} {
                     set aplay [open "|aplay -q -r8" r+]
@@ -216,6 +217,32 @@ namespace eval c8 {
             grid $screen -sticky nwes -column 0 -row 0
             grid columnconfigure . 0 -weight 1
             grid rowconfigure . 0 -weight 1
+
+            bind . <KeyPress> [list [self object] keydown {%K}]
+            bind . <KeyRelease> [list [self object] keyup {%K}]
+        }
+
+        method keytocode {k} {
+            return [lsearch {1 2 3 4 q w e r a s d f z x c v} $k]
+        }
+        unexport keytocode
+
+        method keydown {k} {
+            set c [my keytocode $k]
+            if {$c > -1} {
+                after cancel [lindex $keys $c]
+                lset keys $c 1
+                set lastkey $c
+            }
+        }
+
+        method keyup {k} {
+            set c [my keytocode $k]
+            if {$c > -1} {
+                lset keys $c [after 100 [list lset {*}[
+                    list [info object namespace [self object]]::keys $c {}
+                ]]]
+            }
         }
 
         method set_pixel {x y on} {
@@ -242,6 +269,15 @@ namespace eval c8 {
 
         method buzz {ms} {
             thread::send -async $audiotid [list buzz $ms]
+        }
+
+        method waitkey {} {
+            vwait [info object namespace [self object]]::lastkey
+            return $lastkey
+        }
+
+        method pollkey {c} {
+            return [expr {[lindex $keys $c] ne {}}]
         }
     }
 
