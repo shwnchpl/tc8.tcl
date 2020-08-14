@@ -147,9 +147,9 @@ namespace eval c8 {
                     }                                                                       ;# Draw
                 {^14 \d+ 9 14$}     { if {[$ui pollkey [lindex $v $x]]} { incr pc 2 } }     ;# Skp
                 {^14 \d+ 10 1$}     { if {! [$ui pollkey [lindex $v $x]]} { incr pc 2 } }   ;# Sknp
-                {^15 \d+ 0 7$}      { set dt [lindex $v $x] }                               ;# Movd
+                {^15 \d+ 0 7$}      { lset v $x $dt }                                       ;# Movd
                 {^15 \d+ 0 10$}     { lset v $x [$ui waitkey] }                             ;# Key
-                {^15 \d+ 1 5$}      { lset v $x $dt }                                       ;# Ldd
+                {^15 \d+ 1 5$}      { set dt [lindex $v $x] }                               ;# Ldd
                 {^15 \d+ 1 8$}      { $ui buzz [expr {int([lindex $v $x] * 16.7)}] }        ;# Lds
                 {^15 \d+ 1 14$}     { incr ri [lindex $v $x] }                              ;# Addi
                 {^15 \d+ 2 9$}      { set ri [expr {[lindex $v $x] * 5}] }                  ;# Ldspr
