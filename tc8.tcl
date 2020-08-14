@@ -152,7 +152,7 @@ namespace eval c8 {
                 {^15 \d+ 1 5$}      { lset v $x $dt }                                       ;# Ldd
                 {^15 \d+ 1 8$}      { $ui buzz [expr {int([lindex $v $x] * 16.7)}] }        ;# Lds
                 {^15 \d+ 1 14$}     { incr ri [lindex $v $x] }                              ;# Addi
-                {^15 \d+ 2 9$}      { set ri [expr $x * 5] }                                ;# Ldspr
+                {^15 \d+ 2 9$}      { set ri [expr {[lindex $v $x] * 5}] }                  ;# Ldspr
                 {^15 \d+ 3 3$}      {
                         set vx [lindex $v $x]
                         set h [expr {$vx / 100}]
@@ -209,6 +209,7 @@ namespace eval c8 {
 
             bind . <KeyPress> [list [self object] keydown {%K}]
             bind . <KeyRelease> [list [self object] keyup {%K}]
+            bind . <Destroy> +exit
         }
 
         method keytocode {k} {
