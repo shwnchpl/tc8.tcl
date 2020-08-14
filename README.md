@@ -16,6 +16,12 @@ $ tc8.tcl path/to/chip8/rom
 
 ## Screenshots
 
+### BRIX
+![Screenshot of the game BRIX](/screenshots/brix.png?raw=true "BRIX")
+
+### TETRIS
+![Screenshot of the game TETRIS](/screenshots/tetris.png?raw=true "TETRIS")
+
 ## Credits
 
 For information on the CHIP-8 architecture and how various instructions
