@@ -1,4 +1,6 @@
-package require Tcl 8.5
+#!/usr/bin/env tclsh
+
+package require Tcl 8.6
 package require Tk
 package require Thread
 
@@ -293,4 +295,13 @@ namespace eval c8 {
 
         return [lmap x $data {expr {$x & 0xff}}]
     }
+}
+
+if {$::argv0 eq [info script]} {
+    set ui [c8::Ui new]
+    set cpu [c8::Cpu new $ui]
+
+    $ui create_window 960 480
+    $cpu loadrom [c8::readrom [lindex $argv 0]]
+    $cpu run 2
 }
