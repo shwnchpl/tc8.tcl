@@ -36,17 +36,24 @@ namespace eval c8 {
     }
 
     oo::class create Cpu {
-        variable pc sp ri v ram vram stack ui thread
+        variable pc sp ri dt v ram vram stack ui thread
 
         constructor {u} {
             set sp 0
             set ri 0
+            set dt 0
             set v [lrepeat 0x10 0]
             set ram [concat $c8::FONT_SPRITES [lrepeat 0xfb0 0]]
             set vram [lrepeat 0x800 0]
             set stack [lrepeat 0x10 0]
             set ui $u
             set thread {}
+
+            apply {{t} {
+                upvar $t dt
+                if {$dt > 0} { incr dt -1 }
+                after 17 [list apply [lindex [info level 0] 1] $t]
+            }} [info object namespace [self object]]::dt
         }
 
         method loadrom {rom} {
@@ -135,9 +142,7 @@ namespace eval c8 {
                                 set offset [expr {$vert * 64 + $horiz}]
                                 set oval [lindex $vram $offset]
                                 set nval [expr {($sbyte & (1 << (7 - $j))) != 0}]
-                                if {$oval && $nval} {
-                                    lset v 0x0f 1
-                                }
+                                if {$oval && $nval} { lset v 0x0f 1 }
                                 lset vram $offset [expr {$oval ^ $nval}]
                             }
                         }
@@ -145,9 +150,9 @@ namespace eval c8 {
                     }                                                                       ;# Draw
                 {^14 \d+ 9 14$}     { if {[$ui pollkey [lindex $v $x]]} { incr pc 2 } }     ;# Skp
                 {^14 \d+ 10 1$}     { if {! [$ui pollkey [lindex $v $x]]} { incr pc 2 } }   ;# Sknp
-                {^15 \d+ 0 7$}      {}                                                      ;# Movd - TODO
+                {^15 \d+ 0 7$}      { set dt [lindex $v $x] }                               ;# Movd
                 {^15 \d+ 0 10$}     { lset v $x [$ui waitkey] }                             ;# Key
-                {^15 \d+ 1 5$}      {}                                                      ;# Ldd - TODO
+                {^15 \d+ 1 5$}      { lset v $x $dt }                                       ;# Ldd
                 {^15 \d+ 1 8$}      { $ui buzz [expr {int([lindex $v $x] * 16.7)}] }        ;# Lds
                 {^15 \d+ 1 14$}     { incr ri [lindex $v $x] }                              ;# Addi
                 {^15 \d+ 2 9$}      { set ri [expr $x * 5] }                                ;# Ldspr
