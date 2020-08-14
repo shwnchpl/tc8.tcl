@@ -100,19 +100,19 @@ namespace eval c8 {
                 {^4 \d+ \d+ \d+$}   { if {[lindex $v $x] != $kk} { incr pc 2 } }            ;# Sne
                 {^5 \d+ \d+ 0$}     { if {[lindex $v $x] == [lindex $v $y]} { incr pc 2 } } ;# Sre
                 {^6 \d+ \d+ \d+$}   { lset v $x $kk }                                       ;# Ld
-                {^7 \d+ \d+ \d+$}   { lset v $x [expr {([lindex $v $x] + $kk) % 0xff}] }    ;# Add
+                {^7 \d+ \d+ \d+$}   { lset v $x [expr {([lindex $v $x] + $kk) % 0x100}] }   ;# Add
                 {^8 \d+ \d+ 0$}     { lset v $x [lindex $v $y] }                            ;# Mov
                 {^8 \d+ \d+ 1$}     { lset v $x [expr {[lindex $v $x] | [lindex $v $y]}] }  ;# Or
                 {^8 \d+ \d+ 2$}     { lset v $x [expr {[lindex $v $x] & [lindex $v $y]}] }  ;# And
                 {^8 \d+ \d+ 3$}     { lset v $x [expr {[lindex $v $x] ^ [lindex $v $y]}] }  ;# Xor
                 {^8 \d+ \d+ 4$}     {
                         set s [expr {[lindex $v $x] + [lindex $v $y]}]
-                        lset v $x [expr {$s % 0xff}]
+                        lset v $x [expr {$s % 0x100}]
                         lset v 0x0f [expr {$s > 0xff}]
                     }                                                                       ;# Addr
                 {^8 \d+ \d+ 5$}     {
                         set s [expr {[lindex $v $x] - [lindex $v $y]}]
-                        lset v $x [expr {$s % 0xff}]
+                        lset v $x [expr {$s % 0x100}]
                         lset v 0x0f [expr {$s >= 0}]
                     }                                                                       ;# Subr
                 {^8 \d+ \d+ 6$}     {
@@ -121,7 +121,7 @@ namespace eval c8 {
                     }                                                                       ;# Shr
                 {^8 \d+ \d+ 7$}     {
                         set s [expr {[lindex $v $y] - [lindex $v $x]}]
-                        lset v $x [expr {$s % 0xff}]
+                        lset v $x [expr {$s % 0x100}]
                         lset v 0x0f [expr {$s >= 0}]
                     }                                                                       ;# Subnr
                 {^8 \d+ \d+ 14$}    {
@@ -131,7 +131,7 @@ namespace eval c8 {
                 {^9 \d+ \d+ 0$}     { if {[lindex $v $x] != [lindex $v $y]} { incr pc 2 } } ;# Srne
                 {^10 \d+ \d+ \d+$}  { set ri $nnn }                                         ;# Ldi
                 {^11 \d+ \d+ \d+$}  { set pc [expr {$nnn + [lindex $v 0]}] }                ;# Jmpi
-                {^12 \d+ \d+ \d+$}  { lset v $x [expr {int(rand() * 0xff) & $kk|}] }        ;# Rand
+                {^12 \d+ \d+ \d+$}  { lset v $x [expr {int(rand() * 0xff) & $kk}] }         ;# Rand
                 {^13 \d+ \d+ \d+$}  {
                         lset v 0x0f 0
                         for {set i 0} {$i < $n0} {incr i} {
@@ -160,7 +160,7 @@ namespace eval c8 {
                         set vx [lindex $v $x]
                         set h [expr {$vx / 100}]
                         set t [expr {($vx - $h * 100) / 10}]
-                        set o [expr {$vx - ($h * 100) - (t * 10)}]
+                        set o [expr {$vx - ($h * 100) - ($t * 10)}]
                         c8::lcpy ram "$h $t $o" $ri
                     }                                                                       ;# Bcd
                 {^15 \d+ 5 5$}      { c8::lcpy ram [lrange $v 0 $x] $ri }                   ;# Str
@@ -169,7 +169,7 @@ namespace eval c8 {
             }
 
             # Debug code. Remove later.
-            # puts [format "%04x" $op]
+            # puts "[format "%04x" $op] - $v - $kk"
         }
 
         # Debug code. Remove later.
@@ -228,7 +228,7 @@ namespace eval c8 {
         }
 
         method keytocode {k} {
-            return [lsearch {1 2 3 4 q w e r a s d f z x c v} $k]
+            return [lsearch {x 1 2 3 q w e a s d z c 4 r f v} $k]
         }
         unexport keytocode
 
