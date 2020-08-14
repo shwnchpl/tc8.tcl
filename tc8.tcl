@@ -32,11 +32,6 @@ namespace eval c8 {
         }
     }
 
-    # Debug code. Remove later.
-    if [info object isa object Cpu] {
-        Cpu destroy
-    }
-
     oo::class create Cpu {
         variable pc sp ri dt v ram vram stack ui thread
 
@@ -169,20 +164,7 @@ namespace eval c8 {
                 {^15 \d+ 6 5$}      { c8::lcpy v [lrange $ram $ri [expr {$ri + $x}]] 0 }    ;# Read
                 default             { puts stderr "BAD OPCODE: $op" }
             }
-
-            # Debug code. Remove later.
-            # puts "[format "%04x" $op] - $v - $kk"
         }
-
-        # Debug code. Remove later.
-        method dumpv {} {
-            puts "pc: $pc; v: $v"
-        }
-    }
-
-    # Debug code. Remove later.
-    if [info object isa object Ui] {
-        Ui destroy
     }
 
     oo::class create Ui {
